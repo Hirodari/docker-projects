@@ -32,3 +32,4 @@ override.tf.json
 # Ignore CLI configuration files
 Dockerfile-reference
 build_image.sh
+rentzone.env

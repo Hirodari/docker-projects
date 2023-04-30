@@ -1,0 +1,66 @@
+# run build_image.sh script
+bash build_image.sh
+# check the image is built
+docker image ls
+# Use this to delete everything:
+docker system prune -a --volumes
+# remove containers created between now upto 4hrs back
+docker container prune --filter "until=4h"
+# remove images created between now upto 4hrs back
+docker image prune --filter "until=4h"
+
+# aws cli command to create an amazon ecr repository
+aws ecr create-repository --repository-name rentzone --region us-east-1
+{
+    "repository": {
+        "repositoryArn": "arn:aws:ecr:us-east-1:763544978374:repository/rentzone",
+        "registryId": "763544978374",
+        "repositoryName": "rentzone",
+        "repositoryUri": "763544978374.dkr.ecr.us-east-1.amazonaws.com/rentzone",
+        "createdAt": "2023-04-30T09:42:47+02:00",
+        "imageTagMutability": "MUTABLE",
+        "imageScanningConfiguration": {
+            "scanOnPush": false
+        },
+        "encryptionConfiguration": {
+            "encryptionType": "AES256"
+        }
+    }
+}
+
+
+# retag docker image 
+docker tag rentzone 763544978374.dkr.ecr.us-east-1.amazonaws.com/rentzone
+
+# login to ecr
+aws ecr get-login-password | docker login --username AWS --password-stdin 763544978374.dkr.ecr.us-east-1.amazonaws.com
+
+# push docker image to ecr repository 
+docker push 763544978374.dkr.ecr.us-east-1.amazonaws.com/rentzone
+
+
+######## Database migration ##########
+
+# create a bastion host from the console
+# download flyway on ur computer
+https://flywaydb.org/download/community
+# update flyway.conf 
+
+flyway.url=jdbc:mysql://localhost:3306/applicationdb
+flyway.user=admin
+flyway.password=admin123
+flyway.locations=filesystem:sql
+flyway.cleanDisabled=false
+
+# copy rentzone-db.sql into flyway/sql folder and rename it 
+V1__rentzone-db.sql
+
+
+# to create an ssh tunnel in linux or macOS, execute the following commands:
+# Note: Be sure to replace YOUR_EC2_KEY, LOCAL_PORT, RDS_ENDPOINT, REMOTE_PORT, EC2_USER, 
+# and EC2_HOST with your relevant information.
+# ssh -i "YOUR_EC2_KEY" -L LOCAL_PORT:RDS_ENDPOINT:REMOTE_PORT EC2_USER@EC2_HOST -N -f
+ssh -i ../../../dynamic-ecommerce/hiro_kp.pem -L \
+3306:dev-rds-db-id.c1npllbdh1lb.us-east-1.rds.amazonaws.com:3306 ec2-user@100.26.1.106 -N -f
+# run the migration command
+bash flyway migrate
